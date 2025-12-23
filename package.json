@@ -4,13 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npx ts-node public/index.ts",
+    "console": "npx ts-node bin/console.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d data-source.ts",
+    "make:migration": "npm run typeorm migration:generate src/Migration/DefaultMigration",
+    "migrate": "npx ts-node bin/migrate.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^14.0.2",
+    "inquirer": "^13.1.0",
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",

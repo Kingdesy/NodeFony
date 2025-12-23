@@ -22,8 +22,7 @@ export class UserController extends AbstractController {
         const data = await request.getPayload(); // On récupère le JSON envoyé
         
         const user = new User();
-        user.firstName = data.firstName;
-        user.lastName = data.lastName;
+        user.name = data.firstName;
 
         await this.userRepository.save(user);
 

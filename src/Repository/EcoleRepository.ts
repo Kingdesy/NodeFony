@@ -1,16 +1,16 @@
 import { Service } from '../../framework/Container/Decorators';
-import { User } from '../Entity/User';
+import { Ecole } from '../Entity/Ecole';
 import { EntityManager, Repository } from 'typeorm';
 
 @Service()
-export class UserRepository {
-    private repository: Repository<User>;
+export class EcoleRepository {
+    private repository: Repository<Ecole>;
 
     constructor(private em: EntityManager) {
-        this.repository = this.em.getRepository(User);
+        this.repository = this.em.getRepository(Ecole);
     }
 
-    async findAll(): Promise<User[]> {
+    async findAll(): Promise<Ecole[]> {
         return await this.repository.find();
     }
 }

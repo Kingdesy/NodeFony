@@ -37,6 +37,7 @@ import { ArgumentResolver } from "./Http/ArgumentResolver";
 import { DataSource, EntityManager } from "typeorm";
 import path from 'path';
 import { ControllerLoader } from './Routing/ControllerLoader';
+import { ServiceLoader } from "./Container/ServiceLoader";
 
 export class Kernel {
   private router = new Router();
@@ -96,26 +97,26 @@ export class Kernel {
 }
   public db!: DataSource;
 
-  async boot() {
-    // 1. Connexion DB (TypeORM)
-    this.db = new DataSource({
-        type: "sqlite",
-        database: "database.sqlite",
-        entities: [path.join(__dirname, '../src/Entity/*.ts')],
-        synchronize: true,
-    });
+async boot() {
+    // 1. Initialisation DB
     await this.db.initialize();
-    console.log("[Kernel] Base de données connectée.");
-
-    // container.setInstance(DataSource, this.db);
     container.setInstance(EntityManager, this.db.manager);
 
-    // 2. Auto-chargement des Contrôleurs (Nouveau !)
-    const controllerPath = path.join(__dirname, '../src/Controllers');
+    // 2. Auto-chargement des Services et Repositories (Nouveau !)
+    // On scanne les dossiers importants
+    const repositoryPath = path.join(__dirname, '../src/Repository');
+    const servicePath = path.join(__dirname, '../src/Service');
+    
+    await ServiceLoader.load(repositoryPath);
+    await ServiceLoader.load(servicePath);
+
+    // 3. Chargement des Contrôleurs
+    const controllerPath = path.join(__dirname, '../src/Controller');
     const controllers = await ControllerLoader.load(controllerPath);
     this.registerControllers(controllers);
-  }
 
+    console.log("[Kernel] Services et Repositories chargés automatiquement.");
+}
   public showRoutes() {
     this.router.debugRoutes();
   }

@@ -1,0 +1,16 @@
+import { Controller, Get } from '../../framework/Routing/Decorators';
+import { Service } from '../../framework/Container/Decorators';
+import { AbstractController } from '../../framework/Controller/AbstractController';
+
+@Controller('/{slug}')
+@Service()
+export class {name}Controller extends AbstractController {
+    
+    @Get('/')
+    async index() {
+        return this.json({
+            message: 'Welcome to your new controller!',
+            path: 'src/Controller/{name}Controller.ts',
+        });
+    }
+}

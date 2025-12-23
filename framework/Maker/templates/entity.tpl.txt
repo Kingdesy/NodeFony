@@ -1,0 +1,23 @@
+import { 
+    Entity, 
+    PrimaryGeneratedColumn, 
+    Column, 
+    ManyToOne, 
+    OneToMany, 
+    ManyToMany, 
+    OneToOne, 
+    JoinTable, 
+    JoinColumn 
+} from 'typeorm';
+{imports}
+
+@Entity()
+export class {name} {
+    @PrimaryGeneratedColumn()
+    id!: number;
+
+{fields}
+
+    @Column()
+    createdAt: Date = new Date();
+}
