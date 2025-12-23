@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    /* 1. Métadonnées & Décorateurs (Le moteur de Symfony) */
+    "experimentalDecorators": true,      /* Permet d'utiliser @Service, @Controller, etc. */
+    "emitDecoratorMetadata": true,       /* Indispensable pour l'Autowiring (lecture des types au runtime) */
+
+    /* 2. Cible et Modules */
+    "target": "ES2021",                  /* Support des fonctionnalités JS modernes */
+    "module": "CommonJS",                /* Format standard pour Node.js */
+    "lib": ["ES2021"],                   /* Bibliothèques de types standard */
+
+    /* 3. Structure des dossiers */
+    "rootDir": "./",                     /* Racine du projet */
+    "outDir": "./dist",                  /* Où le code compilé sera généré */
+    "baseUrl": "./",                     /* Pour faciliter les imports relatifs */
+
+    /* 4. Rigueur et Sécurité (Mode Strict) */
+    "strict": true,                      /* Active toutes les vérifications de type */
+    "noImplicitAny": true,               /* Empêche les variables sans type défini */
+    "strictPropertyInitialization": false, /* Souvent désactivé pour laisser le container injecter les props */
+
+    /* 5. Compatibilité */
+    "esModuleInterop": true,             /* Facilite l'import de modules CommonJS/ESM */
+    "skipLibCheck": true,                /* Accélère la compilation en sautant les types des libs externes */
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "framework/**/*",                    /* Inclure le moteur */
+    "src/**/*",                          /* Inclure ton application */
+    "public/**/*"                        /* Inclure le point d'entrée */
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
