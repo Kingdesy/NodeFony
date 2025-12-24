@@ -3,25 +3,38 @@ import fs from "fs";
 import path from "path";
 
 export class Maker {
-  static generate(templateName: string, targetPath: string, variables: Record<string, string>) {
-    const fullTargetPath = path.join(process.cwd(), targetPath);
+static generate(templateName: string, targetPath: string, data: any) {
+    // 1. Définition du chemin du template (.tpl.txt)
+    const templatePath = path.join(__dirname, "templates", `${templateName}.tpl.txt`);
     
-    // Si le fichier existe déjà, on délègue à updateExistingEntity pour ne pas tout casser
-    if (fs.existsSync(fullTargetPath) && templateName === 'entity') {
-        const entityName = variables['name'];
-        return this.updateExistingEntity(entityName, variables['fields'], variables['imports'] || "");
+    if (!fs.existsSync(templatePath)) {
+        throw new Error(`Template introuvable : ${templatePath}`);
     }
 
-    const templatePath = path.join(__dirname, "templates", `${templateName}.tpl.txt`);
-    let content = fs.readFileSync(templatePath, "utf8");
+    let content = fs.readFileSync(templatePath, 'utf8');
 
-    Object.entries(variables).forEach(([key, value]) => {
-      content = content.replace(new RegExp(`{${key}}`, "g"), value);
+    // 2. Remplacement dynamique de toutes les clés présentes dans "data"
+    // Cette boucle remplace {{name}}, {{fields}}, {{imports}}, etc.
+    Object.keys(data).forEach(key => {
+        // La Regex /{+key}+/g gère {key} et {{key}}
+        const regex = new RegExp(`{+${key}}+`, "g");
+        const value = data[key] || ""; // Sécurité si la valeur est null/undefined
+        content = content.replace(regex, value);
     });
 
-    fs.writeFileSync(fullTargetPath, content);
-    return fullTargetPath;
-  }
+    // 3. Gestion du dossier de destination
+    const fullPath = path.join(process.cwd(), targetPath);
+    const dir = path.dirname(fullPath);
+    
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // 4. Écriture du fichier final
+    fs.writeFileSync(fullPath, content);
+    
+    return fullPath;
+}
 
   static updateExistingEntity(entityName: string, newFieldCode: string, newImportCode: string) {
     const filePath = path.join(process.cwd(), `src/Entity/${entityName}.ts`);

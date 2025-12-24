@@ -1,7 +1,4 @@
-import { Entreprise } from './Entreprise';
 
-import { Profile } from './Profile';
-import { Post } from './Post';
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
@@ -14,7 +11,6 @@ import {
     JoinColumn 
 } from 'typeorm';
 
-
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
@@ -24,20 +20,10 @@ export class User {
     @Column()
     name!: string;
 
+    @Column()
+    subname!: string;
+
 
     @Column()
     createdAt: Date = new Date();
-
-    @OneToMany(() => Post, (post) => post.author)
-    posts: Post[];
-
-
-    @OneToOne(() => Profile)
-    @JoinColumn()
-    profile!: Profile;
-
-
-    @ManyToMany(() => Entreprise, (entreprise) => entreprise.pdg)
-    entreprises: Entreprise[];
-
 }

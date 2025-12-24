@@ -1,3 +1,4 @@
+{{imports}}
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
@@ -9,14 +10,13 @@ import {
     JoinTable, 
     JoinColumn 
 } from 'typeorm';
-{imports}
 
 @Entity()
-export class {name} {
+export class {{name}} {
     @PrimaryGeneratedColumn()
     id!: number;
 
-{fields}
+{{fields}}
 
     @Column()
     createdAt: Date = new Date();

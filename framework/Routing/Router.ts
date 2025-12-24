@@ -1,11 +1,57 @@
+import { ArgumentResolver } from './../Http/ArgumentResolver';
 import { container } from "../Container/Container";
 import { RouteDefinition } from "./RouteDefinition";
 
 export class Router {
-  private controllers: any[] = [];
+ private controllers: any[] = [];
 
-  register(controller: any) {
-    this.controllers.push(controller);
+  register(app: any, controllerClass: any) {
+    const instance = new controllerClass();
+    const prefix = Reflect.getMetadata("prefix", controllerClass) || "";
+    const routes: any[] = Reflect.getMetadata("routes", controllerClass) || [];
+
+    routes.forEach(route => {
+        const expressPath = (prefix + route.path)
+            .replace(/\/+/g, '/')
+            .replace(/{(\w+)}/g, ':$1'); 
+
+   app[route.method.toLowerCase()](expressPath, async (req: any, res: any) => {
+    try {
+        const args = ArgumentResolver.resolve(instance, route.methodName, req);
+        const result = await instance[route.methodName](...args);
+
+        // --- GESTION DU RETOUR TYPE SYMFONY ---
+        
+        // 1. Si le résultat est un objet de type "__isResponse" (AbstractController)
+        if (result && result.__isResponse) {
+            switch (result.type) {
+                case 'json':
+                    return res.status(result.status || 200).json(result.data);
+                
+                case 'render':
+                    // Ici on appellera le moteur de template (ex: EJS)
+                    return res.render(result.template, result.data);
+                
+                case 'redirect':
+                    return res.redirect(result.status || 302, result.url);
+            }
+        }
+
+        // 2. Comportement par défaut (fallback)
+        if (result && typeof result === 'object') {
+            return res.json(result);
+        }
+        
+        return res.send(result);
+
+    } catch (err) {
+        console.error("Internal Error:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+        console.log(`  Mapped [${route.method}] ${expressPath}`);
+    });
   }
 
   match(path: string, method: string) {

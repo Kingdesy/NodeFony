@@ -4,11 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "npx ts-node public/index.ts",
+    "dev": "nodemon",
     "console": "npx ts-node bin/console.ts",
-    "typeorm": "typeorm-ts-node-commonjs -d data-source.ts",
-    "make:migration": "npm run typeorm migration:generate src/Migration/DefaultMigration",
-    "migrate": "npx ts-node bin/migrate.ts"
+    "make:controller": "npm run console -- make:controller",
+    "make:entity": "npm run console -- make:entity",
+    "make:crud": "npm run console -- make:crud",
+    "make:migration": "npm run console -- make:migration",
+    "migrate": "npm run console -- doctrine:migrations:migrate",
+    "debug:router": "npm run console -- debug:router"
   },
   "keywords": [],
   "author": "",
@@ -17,11 +20,18 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "inquirer": "^13.1.0",
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "typeorm": "^0.3.28",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.3",
+    "nodemon": "^3.1.11"
   }
 }

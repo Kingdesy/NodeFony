@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "framework", "public"],
+  "ext": "ts,json",
+  "ignore": ["src/Migration", "node_modules"],
+  "exec": "npx ts-node public/index.ts"
+}

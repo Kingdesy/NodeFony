@@ -13,6 +13,24 @@ program
   .description("CLI pour le framework SymfoNode")
   .version("1.0.0");
 
+program
+  .command("make:migration")
+  .alias("make:mig") // Optionnel
+  .description("Génère une nouvelle migration")
+  .action(() => {
+    const timestamp = Date.now();
+    console.log("⏳ Génération de la migration...");
+    try {
+        // Utilise execSync pour lancer la commande TypeORM réelle
+        require('child_process').execSync(
+            `npx typeorm-ts-node-commonjs migration:generate src/Migration/Migration${timestamp} -d data-source.ts`, 
+            { stdio: 'inherit' }
+        );
+    } catch (e) {
+        console.error("❌ Erreur lors de la génération. Vérifiez vos entités.");
+    }
+  });
+
 // --- Commande 1 : debug:router ---
 program
   .command("debug:router")
@@ -113,7 +131,7 @@ program
       const { fieldName } = await inquirer.prompt([{
           type: "input",
           name: "fieldName",
-          message: style.yellow("New property name (press <return> to stop):"),
+          message: style.yellow("New property name (press <return> to stop): \n"),
       }]);
 
       if (!fieldName) { addMore = false; break; }
@@ -226,4 +244,23 @@ program
     console.log(` ${style.cyan('created')}: src/Repository/${name}Repository.ts`);
     console.log(`\n Next: Run ${style.yellow("npm run make:migration")}`);
   });
+
+  program
+  .command("make:crud <name>")
+  .description("Génère un contrôleur CRUD complet")
+  .action((name) => {
+    const className = name.charAt(0).toUpperCase() + name.slice(1);
+    const fileName = `${className}Controller.ts`;
+    const nameLower = name.toLowerCase();
+
+    Maker.generate("crud_controller", `src/Controllers/Crud/${fileName}`, {
+      name: className,
+      nameLower: nameLower
+    });
+
+    console.log(`\x1b[32m SUCCESS \x1b[0m CRUD Controller created at src/Controllers/Crud/${fileName}`);
+  });
 program.parse();
+
+
+

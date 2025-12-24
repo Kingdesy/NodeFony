@@ -24,11 +24,9 @@
 
 // kernel.listen(3000, () => console.log('🚀 SymfoNode sur http://localhost:3000'));
 
-import { Kernel } from '../framework/Kernel';
+import "reflect-metadata"; // Important pour TypeORM et les décorateurs
+import { Kernel } from "../framework/Kernel";
+import 'dotenv/config';
 
 const kernel = new Kernel();
-
-// Plus besoin de registerControllers manuellement !
-kernel.listen(3000, () => {
-  console.log('🚀 SymfoNode est maintenant totalement automatisé sur http://localhost:3000');
-});
+kernel.boot(3000);

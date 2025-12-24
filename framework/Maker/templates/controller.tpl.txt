@@ -2,7 +2,7 @@ import { Controller, Get } from '../../framework/Routing/Decorators';
 import { Service } from '../../framework/Container/Decorators';
 import { AbstractController } from '../../framework/Controller/AbstractController';
 
-@Controller('/{slug}')
+@Controller('/{{slug}}')
 @Service()
 export class {name}Controller extends AbstractController {
     

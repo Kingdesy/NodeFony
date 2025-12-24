@@ -1,13 +1,28 @@
-// framework/Controller/AbstractController.ts
-import { JsonResponse, Response } from '../Http/Response';
+
+// On pourrait automatiser l'accès aux Repos ici
 
 export abstract class AbstractController {
-    protected json(data: object, status: number = 200): JsonResponse {
-        return new JsonResponse(data, status);
+    /**
+     * Retourne une réponse JSON standardisée
+     */
+    protected json(data: any, statusCode: number = 200) {
+        return {
+            __isResponse: true,
+            type: 'json',
+            status: statusCode,
+            data: data
+        };
     }
 
-    protected render(content: string, status: number = 200): Response {
-        // Désormais, les 3 arguments sont acceptés par le constructeur de Response
-        return new Response(content, status, { 'Content-Type': 'text/html' });
+    /**
+     * Simulation du render de Symfony
+     */
+    protected render(template: string, parameters: any = {}) {
+        return {
+            __isResponse: true,
+            type: 'render',
+            template: template,
+            data: parameters
+        };
     }
 }
