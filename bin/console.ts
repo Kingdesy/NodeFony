@@ -89,9 +89,12 @@ program
   });
 
 program
-  .command("make:entity <name>")
+  .command("make:entity <rawName>") // 1. On change 'name' en 'rawName' ici
   .description("Génère ou modifie une entité interactivement")
-  .action(async (name) => {
+  .action(async (rawName) => {
+    // 2. On formate le nom proprement (ex: user -> User)
+    const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    
     // Styling façon Symfony
     const style = {
       cyan: (t: string) => `\x1b[36m${t}\x1b[0m`,
@@ -100,64 +103,38 @@ program
       bold: (t: string) => `\x1b[1m${t}\x1b[22m`,
     };
 
-    console.log(
-      `\n ${style.green(
-        style.bold("Your entity already exists! So let's add some new fields!")
-      )}`
-    );
-    console.log(`\n ${style.cyan("Post")} entity, add your properties!`);
-    console.log(` (press <return> to stop adding fields)`);
+    console.log(`\n ${style.green(style.bold("Your entity already exists! So let's add some new fields!"))}`);
+    console.log(`\n ${style.cyan(name)} entity, add your properties!`); // Utilise 'name' formaté ici
 
-    const fields: {
-      name: string;
-      type: string;
-      targetEntity?: string;
-      relation?: any;
-    }[] = [];
+    const fields: any[] = [];
     let addMore = true;
 
     while (addMore) {
-      console.log("");
-      const { fieldName } = await inquirer.prompt([
-        {
+      const { fieldName } = await inquirer.prompt([{
           type: "input",
           name: "fieldName",
-          message: style.yellow(
-            "New property name (press <return> to stop adding fields):"
-          ),
-        },
-      ]);
+          message: style.yellow("New property name (press <return> to stop):"),
+      }]);
 
-      if (!fieldName) {
-        addMore = false;
-        break;
-      }
+      if (!fieldName) { addMore = false; break; }
 
-      const { fieldType } = await inquirer.prompt([
-        {
+      const { fieldType } = await inquirer.prompt([{
           type: "list",
           name: "fieldType",
           message: `Field type for ${style.cyan(fieldName)}:`,
           choices: ["string", "text", "integer", "boolean", "relation"],
-        },
-      ]);
+      }]);
 
-      let targetEntity = "";
       let relationConfig: any = null;
 
       if (fieldType === "relation") {
-        const { target } = await inquirer.prompt([
-          {
+        const { target } = await inquirer.prompt([{
             type: "input",
             name: "target",
-            message: style.yellow(
-              "What entity should the relationship be with?"
-            ),
-          },
-        ]);
+            message: style.yellow("What entity should the relationship be with?"),
+        }]);
 
-        const { relType } = await inquirer.prompt([
-          {
+        const { relType } = await inquirer.prompt([{
             type: "list",
             name: "relType",
             message: `Which type of relation is it?`,
@@ -167,87 +144,48 @@ program
               "ManyToMany (Many Posts relate to many Tags)",
               "OneToOne (Each User relates to one Profile)",
             ],
-          },
-        ]);
+        }]);
 
-        relationConfig = {
-          target: target,
-          type: relType.split(" ")[0], // On récupère juste "ManyToOne", etc.
-        };
+        relationConfig = { target, type: relType.split(" ")[0] };
 
-        console.log(
-          `\n ${style.green("OK!")} Setting up a ${style.bold(
-            relationConfig.type
-          )} relation.\n`
-        );
-
-        const { addInverse } = await inquirer.prompt([
-          {
+        const { addInverse } = await inquirer.prompt([{
             type: "confirm",
             name: "addInverse",
-            message: `Do you want to add a new property to ${style.cyan(
-              target
-            )} so that you can access/update ${style.cyan(
-              name
-            )} objects from it?`,
+            message: `Do you want to add a new property to ${style.cyan(target)}?`,
             default: true,
-          },
-        ]);
+        }]);
 
         if (addInverse) {
           const isOneToOne = relationConfig.type === "OneToOne";
+          const isManyToMany = relationConfig.type === "ManyToMany"; // AJOUT ICI
 
-          // Si c'est OneToOne, le nom inversé est au singulier (ex: user)
-          // Sinon c'est au pluriel (ex: posts)
           const defaultInversedName = isOneToOne
             ? name.toLowerCase()
             : name.toLowerCase() + "s";
 
-          const { inversedBy } = await inquirer.prompt([
-            {
+          const { inversedBy } = await inquirer.prompt([{
               type: "input",
               name: "inversedBy",
               message: `New property name in ${style.cyan(target)}:`,
               default: defaultInversedName,
-            },
-          ]);
+          }]);
 
-          // LOGIQUE DE GÉNÉRATION DYNAMIQUE
           let inverseFieldCode = "";
+          // --- LOGIQUE CORRIGÉE ICI ---
           if (isOneToOne) {
-            // Côté inverse d'un OneToOne (sans @JoinColumn car il est déjà sur l'autre entité)
             inverseFieldCode = `\n    @OneToOne(() => ${name}, (${name.toLowerCase()}) => ${name.toLowerCase()}.${fieldName})\n    ${inversedBy}!: ${name};\n`;
+          } else if (isManyToMany) {
+            inverseFieldCode = `\n    @ManyToMany(() => ${name}, (${name.toLowerCase()}) => ${name.toLowerCase()}.${fieldName})\n    ${inversedBy}: ${name}[];\n`;
           } else {
-            // Cas classique : ManyToOne devient OneToMany
-            inverseFieldCode = `\n    @OneToMany(() => ${name}, (${name.toLowerCase()}) => ${name.toLowerCase()}.${fieldName})\n    ${inversedBy}!: ${name}[];\n`;
+            inverseFieldCode = `\n    @OneToMany(() => ${name}, (${name.toLowerCase()}) => ${name.toLowerCase()}.${fieldName})\n    ${inversedBy}: ${name}[];\n`;
           }
 
           const inverseImportCode = `import { ${name} } from './${name}';\n`;
-          Maker.updateExistingEntity(
-            target,
-            inverseFieldCode,
-            inverseImportCode
-          );
-
-          console.log(
-            `\n ${style.green("updated")}: ${style.cyan(
-              "src/Entity/" + target + ".ts"
-            )} has been modified.`
-          );
+          Maker.updateExistingEntity(target, inverseFieldCode, inverseImportCode);
         }
       }
 
-      fields.push({
-        name: fieldName,
-        type: fieldType,
-        relation: relationConfig,
-      });
-
-      console.log(
-        `\n ${style.green(
-          "updated"
-        )}: add another property or press <return> to save and generate`
-      );
+      fields.push({ name: fieldName, type: fieldType, relation: relationConfig });
     }
 
     // --- LOGIQUE DE GÉNÉRATION ---
@@ -264,42 +202,28 @@ program
             fieldsCode += `\n    @ManyToOne(() => ${target})\n    ${field.name}!: ${target};\n`;
             break;
           case "OneToMany":
-            // Attention: OneToMany nécessite une propriété inverse dans l'autre classe
-            fieldsCode += `\n    @OneToMany(() => ${target}, (target) => target.${name.toLowerCase()})\n    ${
-              field.name
-            }!: ${target}[];\n`;
+            fieldsCode += `\n    @OneToMany(() => ${target}, (target) => target.${name.toLowerCase()})\n    ${field.name}!: ${target}[];\n`;
             break;
           case "ManyToMany":
-            fieldsCode += `\n    @ManyToMany(() => ${target})\n    @JoinTable()\n    ${field.name}!: ${target}[];\n`;
+            fieldsCode += `\n    @ManyToMany(() => ${target})\n    @JoinTable()\n    ${field.name}!: ${target}[];\n`; 
             break;
           case "OneToOne":
             fieldsCode += `\n    @OneToOne(() => ${target})\n    @JoinColumn()\n    ${field.name}!: ${target};\n`;
             break;
         }
       } else {
-        // ... (logique standard pour string/integer)
         const tsType = field.type === "integer" ? "number" : "string";
         fieldsCode += `\n    @Column()\n    ${field.name}!: ${tsType};\n`;
       }
     }
 
-    // Appel au Maker
-    Maker.generate("entity", `src/Entity/${name}.ts`, {
-      name: name,
-      fields: fieldsCode,
-      imports: importsCode,
-    });
-
-    Maker.generate("repository", `src/Repository/${name}Repository.ts`, {
-      name,
-    });
+    // --- GÉNÉRATION FINALE ---
+    Maker.generate("entity", `src/Entity/${name}.ts`, { name, fields: fieldsCode, imports: importsCode });
+    Maker.generate("repository", `src/Repository/${name}Repository.ts`, { name });
 
     console.log(`\n ${style.green("Success!")}`);
-    console.log(
-      ` Next: When you're ready, run ${style.yellow(
-        "npm run make:migration"
-      )} to create the migration.`
-    );
+    console.log(` ${style.cyan('created/updated')}: src/Entity/${name}.ts`);
+    console.log(` ${style.cyan('created')}: src/Repository/${name}Repository.ts`);
+    console.log(`\n Next: Run ${style.yellow("npm run make:migration")}`);
   });
-
 program.parse();

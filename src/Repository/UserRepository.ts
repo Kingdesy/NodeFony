@@ -1,16 +1,19 @@
-import { Service } from '../../framework/Container/Decorators';
-import { User } from '../Entity/User';
-import { EntityManager, Repository } from 'typeorm';
+import { AppDataSource } from "../../data-source";
+import { User } from "../Entity/User";
+import { Repository } from "typeorm";
 
-@Service()
-export class UserRepository {
-    private repository: Repository<User>;
-
-    constructor(private em: EntityManager) {
-        this.repository = this.em.getRepository(User);
+export class UserRepository extends Repository<User> {
+    constructor() {
+        super(User, AppDataSource.manager);
     }
 
-    async findAll(): Promise<User[]> {
-        return await this.repository.find();
+    /**
+     * Exemple de méthode personnalisée style Symfony
+     * @param id 
+     */
+    async findOneById(id: number): Promise<User | null> {
+        return this.findOneBy({ id: id as any });
     }
 }
+
+export const UserRepo = new UserRepository();

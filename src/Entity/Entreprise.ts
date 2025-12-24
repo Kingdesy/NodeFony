@@ -13,7 +13,7 @@ import { User } from './User';
 
 
 @Entity()
-export class entreprise {
+export class Entreprise {
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -23,7 +23,7 @@ export class entreprise {
 
     @ManyToMany(() => User)
     @JoinTable()
-    prop!: User[];
+    pdg!: User[];
 
 
     @Column()

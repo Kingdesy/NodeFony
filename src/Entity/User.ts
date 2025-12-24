@@ -1,4 +1,5 @@
-import { entreprise } from './entreprise';
+import { Entreprise } from './Entreprise';
+
 import { Profile } from './Profile';
 import { Post } from './Post';
 import { 
@@ -28,7 +29,7 @@ export class User {
     createdAt: Date = new Date();
 
     @OneToMany(() => Post, (post) => post.author)
-    posts!: Post[];
+    posts: Post[];
 
 
     @OneToOne(() => Profile)
@@ -36,7 +37,7 @@ export class User {
     profile!: Profile;
 
 
-    @OneToMany(() => entreprise, (entreprise) => entreprise.prop)
-    entreprises!: entreprise[];
+    @ManyToMany(() => Entreprise, (entreprise) => entreprise.pdg)
+    entreprises: Entreprise[];
 
 }

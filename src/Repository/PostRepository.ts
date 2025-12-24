@@ -1,16 +1,19 @@
-import { Service } from '../../framework/Container/Decorators';
-import { Post } from '../Entity/Post';
-import { EntityManager, Repository } from 'typeorm';
+import { AppDataSource } from "../../data-source";
+import { Post } from "../Entity/Post";
+import { Repository } from "typeorm";
 
-@Service()
-export class PostRepository {
-    private repository: Repository<Post>;
-
-    constructor(private em: EntityManager) {
-        this.repository = this.em.getRepository(Post);
+export class PostRepository extends Repository<Post> {
+    constructor() {
+        super(Post, AppDataSource.manager);
     }
 
-    async findAll(): Promise<Post[]> {
-        return await this.repository.find();
+    /**
+     * Exemple de méthode personnalisée style Symfony
+     * @param id 
+     */
+    async findOneById(id: number): Promise<Post | null> {
+        return this.findOneBy({ id: id as any });
     }
 }
+
+export const PostRepo = new PostRepository();
