@@ -1,3 +1,4 @@
+#!/usr/bin/env ts-node
 import { Command } from "commander";
 import inquirer from "inquirer";
 import { AppDataSource } from "../data-source";
@@ -6,6 +7,8 @@ import { ControllerLoader } from "../framework/Routing/ControllerLoader";
 import path from "path";
 import fs from "fs";
 import { Maker } from "../framework/Maker/Maker";
+import ora from "ora";
+import chalk from "chalk";
 
 const program = new Command();
 
@@ -17,12 +20,35 @@ const program = new Command();
       bold: (t: string) => `\x1b[1m${t}\x1b[22m`,
       dim: (t: string) => `\x1b[2m${t}\x1b[22m`,
     };
+  // --- 1. VALIDATION DU PROJET (UX) ---
+const checkProjectRoot = () => {
+    const pkgPath = path.join(process.cwd(), "package.json");
+    if (!fs.existsSync(pkgPath)) {
+        console.log(chalk.red("\n ❌ Error: You must run this command at the root of a NodeFony project."));
+        process.exit(1);
+    }
+};
+
+// --- 2. GESTION DES LOGS (UX) ---
+const logger = {
+    info: (msg: string) => console.log(chalk.cyan(` ℹ ${msg}`)),
+    success: (msg: string) => console.log(chalk.green(`\n ✔ ${msg}`)),
+    warn: (msg: string) => console.log(chalk.yellow(` ⚠ ${msg}`)),
+    error: (msg: string) => console.log(chalk.red(` ✖ ${msg}`)),
+    header: () => {
+        console.log(chalk.bold.magenta("\n ╔════════════════════════════════════╗"));
+        console.log(chalk.bold.magenta(" ║      NODEPHONY FRAMEWORK CLI       ║"));
+        console.log(chalk.bold.magenta(" ╚════════════════════════════════════╝\n"));
+    }
+};
 
 
 program
   .name("nodefony-console")
   .description("CLI pour le framework nodefony") 
   .version("1.0.0");
+  checkProjectRoot();
+    logger.header();
 
   const handleExit = (error: any) => {
   if (error.name === "ExitPromptError" || error.message?.includes("SIGINT")) {
@@ -38,6 +64,8 @@ program
   .alias("make:mig") // Optionnel
   .description("Génère une nouvelle migration")
   .action(() => {
+    checkProjectRoot();
+    logger.header();
     const timestamp = Date.now();
     console.log("⏳ Génération de la migration...");
     try {
@@ -330,8 +358,8 @@ program
     };
 
     console.log(
-      `\n ${style.bold(style.cyan("NodeFony CLI"))} - ${style.green(
-        "Entity Generator"
+      `${style.bold(style.cyan("NodeFony CLI"))} - ${style.green(
+        "Entity Generator \n"
       )}`
     );
 
@@ -343,7 +371,7 @@ program
       );
     } else {
       console.log(
-        ` ${style.green("✔")} Creating new entity: ${style.bold(name)}`
+        ` ${style.green("✔")} Creating new entity: ${style.bold(name)} \n`
       );
     }
 

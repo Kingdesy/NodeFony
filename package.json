@@ -23,6 +23,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "inquirer": "^13.1.0",
+    "ora": "^9.0.0",
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
