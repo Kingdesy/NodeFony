@@ -4,79 +4,58 @@ import path from "path";
 
 export class Maker {
 static generate(templateName: string, targetPath: string, data: any) {
-    // 1. Définition du chemin du template (.tpl.txt)
-    const templatePath = path.join(__dirname, "templates", `${templateName}.tpl.txt`);
-    
-    if (!fs.existsSync(templatePath)) {
-        throw new Error(`Template introuvable : ${templatePath}`);
+    const fullPath = path.join(process.cwd(), targetPath);
+    const exists = fs.existsSync(fullPath);
+
+    // 1. SI LE FICHIER EXISTE DÉJÀ (Cas de make:entity sur une entité existante)
+    if (exists && templateName === 'entity') {
+        // On n'utilise pas le template ! On appelle notre méthode de mise à jour
+        return this.updateExistingEntity(data.name, data.fields, data.imports);
     }
 
+    // 2. SI LE FICHIER N'EXISTE PAS (Création classique)
+    const templatePath = path.join(__dirname, `templates/${templateName}.tpl.txt`);
     let content = fs.readFileSync(templatePath, 'utf8');
 
-    // 2. Remplacement dynamique de toutes les clés présentes dans "data"
-    // Cette boucle remplace {{name}}, {{fields}}, {{imports}}, etc.
+    // Remplacement des balises
     Object.keys(data).forEach(key => {
-        // La Regex /{+key}+/g gère {key} et {{key}}
         const regex = new RegExp(`{+${key}}+`, "g");
-        const value = data[key] || ""; // Sécurité si la valeur est null/undefined
-        content = content.replace(regex, value);
+        content = content.replace(regex, data[key] || "");
     });
 
-    // 3. Gestion du dossier de destination
-    const fullPath = path.join(process.cwd(), targetPath);
+    // Création du dossier si nécessaire
     const dir = path.dirname(fullPath);
-    
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    // 4. Écriture du fichier final
+    // Écriture du nouveau fichier
     fs.writeFileSync(fullPath, content);
-    
-    return fullPath;
 }
 
-  static updateExistingEntity(entityName: string, newFieldCode: string, newImportCode: string) {
-    const filePath = path.join(process.cwd(), `src/Entity/${entityName}.ts`);
-    if (!fs.existsSync(filePath)) return;
+static updateExistingEntity(targetEntityName: string, newFieldCode: string, newImportCode: string) {
+        const filePath = path.join(process.cwd(), `src/Entity/${targetEntityName}.ts`);
+        
+        if (!fs.existsSync(filePath)) return;
 
-    let content = fs.readFileSync(filePath, "utf8");
+        let content = fs.readFileSync(filePath, 'utf8');
 
-    // 1. GESTION DE L'IMPORT DE L'ENTITÉ (ex: import { Profile } ...)
-    const classNameMatch = newImportCode.match(/{\s*(\w+)\s*}/);
-    if (classNameMatch) {
-      const className = classNameMatch[1];
-      // On vérifie si le nom de la classe est déjà présent dans un import
-      const isAlreadyImported = new RegExp(`import.*{.*\\b${className}\\b.*}.*`).test(content);
-      
-      if (!isAlreadyImported && newImportCode.trim() !== "") {
-        content = newImportCode.trim() + "\n" + content;
-      }
-    }
-
-    // 2. GESTION DES DÉCORATEURS TYPEORM (Multi-lignes supporté)
-    const decorators = newFieldCode.match(/@(\w+)/g) || [];
-    decorators.forEach(rawDeco => {
-      const deco = rawDeco.replace('@', '');
-      const typeormRegex = /import\s+{([\s\S]*?)}\s+from\s+['"]typeorm['"]/;
-      const match = content.match(typeormRegex);
-
-      if (match) {
-        const currentImports = match[1].split(',').map(i => i.trim()).filter(i => i !== "");
-        if (!currentImports.includes(deco)) {
-          currentImports.push(deco);
-          const newImportLine = `import { ${currentImports.sort().join(', ')} } from 'typeorm'`;
-          content = content.replace(typeormRegex, newImportLine);
+        // 1. Gestion intelligente de l'import
+        // On vérifie si l'entité est déjà importée
+        const importName = newImportCode.match(/{(.*)}/)?.[1]?.trim();
+        if (importName && !content.includes(`import { ${importName} }`)) {
+            // On insère l'import au tout début du fichier
+            content = newImportCode + content;
         }
-      }
-    });
 
-    // 3. INSERTION DU CHAMP AVANT LA DERNIÈRE ACCOLADE
-    const lastBraceIndex = content.lastIndexOf("}");
-    if (lastBraceIndex !== -1) {
-      content = content.substring(0, lastBraceIndex) + newFieldCode + "\n" + content.substring(lastBraceIndex);
+        // 2. Insertion du champ avant le dernier crochet fermant de la classe
+        const lastCurlyBraceIndex = content.lastIndexOf('}');
+        if (lastCurlyBraceIndex !== -1) {
+            const beforeBrace = content.substring(0, lastCurlyBraceIndex);
+            const afterBrace = content.substring(lastCurlyBraceIndex);
+            
+            // On assemble : contenu + nouveau champ + crochet final
+            content = beforeBrace + newFieldCode + afterBrace;
+        }
+
+        fs.writeFileSync(filePath, content);
     }
-
-    fs.writeFileSync(filePath, content);
-  }
 }

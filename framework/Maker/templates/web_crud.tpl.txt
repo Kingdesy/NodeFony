@@ -1,0 +1,27 @@
+import { Controller, Get, Post } from '../../../framework/Routing/Decorators';
+import { AbstractController } from '../../../framework/Controller/AbstractController';
+import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+import { Request } from '../../../framework/Http/Request';
+
+@Controller('/{{slug}}')
+export class {{name}}Controller extends AbstractController {
+
+    @Get('/')
+    async index() {
+        const data = await {{name}}Repo.find();
+        return this.render('{{slug}}/index.html', { data });
+    }
+
+    @Get('/{id}')
+    async show(id: string) {
+        const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+        return this.render('{{slug}}/show.html', { item });
+    }
+
+    @Post('/create')
+    async create(request: Request) {
+        const newItem = {{name}}Repo.create(request.getBody());
+        await {{name}}Repo.save(newItem);
+        return this.redirect('/{{slug}}');
+    }
+}

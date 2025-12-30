@@ -3,7 +3,7 @@ import path from "path";
 import * as dotenv from "dotenv";
 
 // Chargement du fichier .env
-dotenv.config();
+dotenv.config({quiet: true});
 
 const isSqlite = process.env.DB_TYPE === "sqlite";
 

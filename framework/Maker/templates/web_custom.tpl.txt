@@ -1,0 +1,8 @@
+import { Controller, Get, Post } from '../../../framework/Routing/Decorators';
+import { AbstractController } from '../../../framework/Controller/AbstractController';
+import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+
+@Controller('/{{slug}}')
+export class {{name}}Controller extends AbstractController {
+{{methodsCode}}
+}
