@@ -8,91 +8,42 @@ export class {{name}}Controller extends AbstractController {
 
     @Get('/')
     async index() {
-        try {
-            const data = await {{name}}Repo.find();
-            return this.json(data);
-        } catch (error: any) {
-            return this.json({ error: "Fetch failed", message: error.message }, 500);
-        }
+        const data = await {{name}}Repo.find();
+        return this.json(data);
     }
 
     @Get('/{id}')
     async show(id: string) {
-        try {
-            const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
-            if (!item) {
-                return this.json({ error: "Not found", message: `{{name}} with ID ${id} not found` }, 404);
-            }
-            return this.json(item);
-        } catch (error: any) {
-            return this.json({ error: "Error fetching item", message: error.message }, 500);
-        }
+        const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+        return item ? this.json(item) : this.json({ error: "Not found" }, 404);
     }
 
     @Post('/')
     async create(request: Request) {
-        const body = request.getBody();
-        
-        if (!body || Object.keys(body).length === 0) {
-            return this.json({ error: "Validation failed", message: "Payload cannot be empty" }, 400);
-        }
-
         try {
-            const newItem = {{name}}Repo.create(body);
-            await {{name}}Repo.save(newItem);
-            return this.json({
-                message: "{{name}} created successfully",
-                data: newItem
-            }, 201);
+            const newItem = {{name}}Repo.create(request.getBody());
+            const savedItem = await {{name}}Repo.save(newItem);
+            return this.json(savedItem, 201);
         } catch (error: any) {
-            // Check for Unique Constraint (SQLite/MySQL codes)
-            if (error.code === 'SQLITE_CONSTRAINT' || error.code === 'ER_DUP_ENTRY') {
-                return this.json({ error: "Conflict", message: "A record with these details already exists." }, 409);
-            }
-            return this.json({ error: "Creation failed", message: error.message }, 400);
+            return this.json({ error: error.message }, 400);
         }
     }
 
     @Put('/{id}')
     async update(id: string, request: Request) {
-        const body = request.getBody();
-
         try {
-            const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
-            if (!item) {
-                return this.json({ error: "Not found", message: `Cannot update: {{name}} ${id} does not exist` }, 404);
-            }
-
-            {{name}}Repo.merge(item, body);
-            await {{name}}Repo.save(item);
-            
-            return this.json({
-                message: "{{name}} updated successfully",
-                data: item
-            });
+            let item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+            if (!item) return this.json({ error: "Not found" }, 404);
+            {{name}}Repo.merge(item, request.getBody());
+            return this.json(await {{name}}Repo.save(item));
         } catch (error: any) {
-            if (error.code === 'SQLITE_CONSTRAINT' || error.code === 'ER_DUP_ENTRY') {
-                return this.json({ error: "Conflict", message: "Update violates unique constraints." }, 409);
-            }
-            return this.json({ error: "Update failed", message: error.message }, 400);
+            return this.json({ error: "Update failed" }, 400);
         }
     }
 
     @Delete('/{id}')
     async delete(id: string) {
-        try {
-            const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
-            if (!item) {
-                return this.json({ error: "Not found", message: `Cannot delete: {{name}} ${id} does not exist` }, 404);
-            }
-
-            await {{name}}Repo.remove(item);
-            return this.json({ 
-                message: "{{name}} deleted successfully",
-                id: id 
-            });
-        } catch (error: any) {
-            return this.json({ error: "Deletion failed", message: error.message }, 500);
-        }
+        const result = await {{name}}Repo.delete(id);
+        return result.affected !== 0 ? this.json({ message: "Deleted" }) : this.json({ error: "Not found" }, 404);
     }
 }

@@ -27,3 +27,19 @@ export function Controller(prefix: string) {
         Reflect.defineMetadata('prefix', prefix, target);
     };
 }
+
+export function UseMiddleware(middleware: any) {
+    return function (target: any, propertyKey?: string) {
+        if (propertyKey) {
+            // Appliqué sur une méthode
+            const middlewares = Reflect.getMetadata('middlewares', target, propertyKey) || [];
+            middlewares.push(middleware);
+            Reflect.defineMetadata('middlewares', middlewares, target, propertyKey);
+        } else {
+            // Appliqué sur une classe (Contrôleur)
+            const middlewares = Reflect.getMetadata('middlewares', target) || [];
+            middlewares.push(middleware);
+            Reflect.defineMetadata('middlewares', middlewares, target);
+        }
+    };
+}

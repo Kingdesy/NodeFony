@@ -20,8 +20,9 @@ export const AppDataSource = new DataSource({
     // Chemin de la base (ou nom de la DB)
     database: process.env.DB_DATABASE || "database.sqlite",
     
-    synchronize: false,
+    synchronize: true,
     logging: process.env.NODE_ENV === "development",
+    // logging: true,
     
     // Utilisation de process.cwd() pour garantir les chemins absolus
     entities: [path.join(process.cwd(), "src/Entity/*.ts")],

@@ -1,18 +1,18 @@
 import { Controller, Get, Post, Put, Delete } from '../../../framework/Routing/Decorators';
 import { AbstractController } from '../../../framework/Controller/AbstractController';
-import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+import { UserRepo } from '../../Repository/UserRepository';
 import { Request } from '../../../framework/Http/Request';
 
-@Controller('/{{slug}}')
-export class {{name}}Controller extends AbstractController {
+@Controller('/api/user')
+export class UserController extends AbstractController {
 
     /**
-     * Liste tous les éléments avec leurs relations : [{{relations}}]
+     * Liste tous les éléments avec leurs relations : ['posts']
      */
     @Get('/')
     async index() {
-        const data = await {{name}}Repo.find({
-            relations: [{{relations}}]
+        const data = await UserRepo.find({
+            relations: ['posts']
         });
         return this.json(data);
     }
@@ -22,13 +22,13 @@ export class {{name}}Controller extends AbstractController {
      */
     @Get('/{id}')
     async show(id: string) {
-        const item = await {{name}}Repo.findOne({
+        const item = await UserRepo.findOne({
             where: { id: parseInt(id) } as any,
-            relations: [{{relations}}]
+            relations: ['posts']
         });
 
         if (!item) {
-            return this.json({ error: "{{name}} not found" }, 404);
+            return this.json({ error: "User not found" }, 404);
         }
 
         return this.json(item);
@@ -40,18 +40,18 @@ export class {{name}}Controller extends AbstractController {
     @Post('/')
     async create(request: Request) {
         try {
-            const newItem = {{name}}Repo.create(request.getBody());
-            const savedItem = await {{name}}Repo.save(newItem);
+            const newItem = UserRepo.create(request.getBody());
+            const savedItem = await UserRepo.save(newItem);
 
-            const fullItem = await {{name}}Repo.findOne({
+            const fullItem = await UserRepo.findOne({
                 where: { id: (savedItem as any).id },
-                relations: [{{relations}}]
+                relations: ['posts']
             });
 
             return this.json(fullItem, 201);
         } catch (error: any) {
             return this.json({ 
-                error: "Could not create {{name}}", 
+                error: "Could not create User", 
                 details: error.message 
             }, 400);
         }
@@ -63,12 +63,12 @@ export class {{name}}Controller extends AbstractController {
     @Put('/{id}')
     async update(id: string, request: Request) {
         try {
-            let item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+            let item = await UserRepo.findOneBy({ id: parseInt(id) } as any);
             
             if (!item) return this.json({ error: "Not found" }, 404);
 
-            {{name}}Repo.merge(item, request.getBody());
-            const updatedItem = await {{name}}Repo.save(item);
+            UserRepo.merge(item, request.getBody());
+            const updatedItem = await UserRepo.save(item);
 
             return this.json(updatedItem);
         } catch (error: any) {
@@ -81,12 +81,12 @@ export class {{name}}Controller extends AbstractController {
      */
     @Delete('/{id}')
     async delete(id: string) {
-        const result = await {{name}}Repo.delete(id);
+        const result = await UserRepo.delete(id);
         
         if (result.affected === 0) {
             return this.json({ error: "Not found or already deleted" }, 404);
         }
 
-        return this.json({ message: "{{name}} deleted successfully" });
+        return this.json({ message: "User deleted successfully" });
     }
 }

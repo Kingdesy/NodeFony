@@ -1,0 +1,32 @@
+import { UserRepo } from '../../Repository/UserRepository';
+import jwt from 'jsonwebtoken';
+
+export class AuthMiddleware {
+    static async handle(req: any, res: any, next: Function) {
+        const token = req.cookies?.access_token;
+
+        if (!token) {
+            return res.status(401).json({ error: "Non authentifié" });
+        }
+
+        try {
+            const secret = process.env.JWT_SECRET || 'dev_secret';
+            const decoded = jwt.verify(token, secret) as any;
+
+            // --- LA MAGIE EST ICI ---
+            // On va chercher l'utilisateur complet en base de données
+            const user = await UserRepo.findOneBy({ id: decoded.id });
+
+            if (!user) {
+                return res.status(401).json({ error: "Utilisateur introuvable ou supprimé" });
+            }
+
+            // On injecte l'entité complète dans la requête
+            req.user = user; 
+
+            await next();
+        } catch (err) {
+            return res.status(403).json({ error: "Session invalide" });
+        }
+    }
+}

@@ -9,8 +9,9 @@ export class Request {
     }
 
     // Récupère un paramètre de l'URL
-    getParam(name: string) {
-        return this.req.params[name];
+
+    getParams() {
+        return this.req.params; // Récupère les params d'Express (:id)
     }
 
     get path() {

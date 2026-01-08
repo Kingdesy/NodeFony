@@ -1,6 +1,7 @@
-import { Controller, Get, Post } from '../../../framework/Routing/Decorators';
+import { Controller, Get, Post, Put, Delete } from '../../../framework/Routing/Decorators';
 import { AbstractController } from '../../../framework/Controller/AbstractController';
 import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+{{relationImports}}
 import { Request } from '../../../framework/Http/Request';
 
 @Controller('/{{slug}}')
@@ -8,20 +9,50 @@ export class {{name}}Controller extends AbstractController {
 
     @Get('/')
     async index() {
-        const data = await {{name}}Repo.find();
-        return this.render('{{slug}}/index.html', { data });
+        const data = await {{name}}Repo.find({
+            relations: [{{relations}}]
+        });
+        return this.render('{{slug}}/index.html', { items: data });
     }
 
-    @Get('/{id}')
-    async show(id: string) {
-        const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
-        return this.render('{{slug}}/show.html', { item });
+    @Get('/create')
+    async createForm() {
+        return this.render('{{slug}}/create.html', {
+            {{relationFetch}}
+        });
     }
 
     @Post('/create')
-    async create(request: Request) {
-        const newItem = {{name}}Repo.create(request.getBody());
-        await {{name}}Repo.save(newItem);
+    async store(request: Request) {
+        const item = {{name}}Repo.create(request.getBody());
+        await {{name}}Repo.save(item);
+        return this.redirect('/{{slug}}');
+    }
+
+    @Get('/edit/{id}')
+    async editForm(id: string) {
+        const item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+        if (!item) return this.redirect('/{{slug}}?error=not_found');
+
+        return this.render('{{slug}}/edit.html', {
+            item,
+            {{relationFetch}}
+        });
+    }
+
+    @Post('/update/{id}')
+    async update(id: string, request: Request) {
+        let item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+        if (item) {
+            {{name}}Repo.merge(item, request.getBody());
+            await {{name}}Repo.save(item);
+        }
+        return this.redirect('/{{slug}}');
+    }
+
+    @Get('/delete/{id}')
+    async delete(id: string) {
+        await {{name}}Repo.delete(id);
         return this.redirect('/{{slug}}');
     }
 }

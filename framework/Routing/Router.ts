@@ -1,108 +1,122 @@
+import "reflect-metadata";
 import { ArgumentResolver } from "./../Http/ArgumentResolver";
-import { container } from "../Container/Container";
-import { RouteDefinition } from "./RouteDefinition";
 
 export class Router {
   private controllers: any[] = [];
 
+  /**
+   * Enregistre un contrôleur et ses routes dans Express avec gestion des priorités
+   */
   register(app: any, controllerClass: any) {
     const instance = new controllerClass();
     const prefix = Reflect.getMetadata("prefix", controllerClass) || "";
-    const routes: any[] = Reflect.getMetadata("routes", controllerClass) || [];
+    let routes: any[] = Reflect.getMetadata("routes", controllerClass) || [];
+    
+    this.controllers.push(controllerClass);
+
+    // --- LOGIQUE DE PRIORITÉ ---
+    // On trie pour que les routes fixes (ex: /me) soient enregistrées 
+    // AVANT les routes dynamiques (ex: /{id})
+    routes.sort((a, b) => {
+      const aHasParam = a.path.includes('{');
+      const bHasParam = b.path.includes('{');
+      if (aHasParam && !bHasParam) return 1;
+      if (!aHasParam && bHasParam) return -1;
+      return 0;
+    });
 
     routes.forEach((route) => {
+      // Transformation du format {id} en format Express :id
       const expressPath = (prefix + route.path)
         .replace(/\/+/g, "/")
         .replace(/{(\w+)}/g, ":$1");
 
+      // Récupération des middlewares (Classe + Méthode)
+      const controllerMiddlewares = Reflect.getMetadata('middlewares', controllerClass) || [];
+      const methodMiddlewares = Reflect.getMetadata('middlewares', instance.constructor.prototype, route.methodName) || [];
+      const allMiddlewares = [...controllerMiddlewares, ...methodMiddlewares];
+
+      // Enregistrement de la route dans Express
       app[route.method.toLowerCase()](
         expressPath,
         async (req: any, res: any) => {
           try {
-            const args = ArgumentResolver.resolve(
-              instance,
-              route.methodName,
-              req
-            );
-            const result = await instance[route.methodName](...args);
+            let index = 0;
 
-            // --- GESTION DU RETOUR TYPE SYMFONY ---
-
-            // 1. Si le résultat est un objet de type "__isResponse" (AbstractController)
-            if (result && result.__isResponse) {
-              switch (result.type) {
-                case "json":
-                  return res.status(result.status || 200).json(result.data);
-
-                case "render":
-                  // Ici on appellera le moteur de template (ex: EJS)
-                  return res.render(result.template, result.data);
-
-                case "redirect":
-                  return res.redirect(result.status || 302, result.url);
+            // Chaîne d'exécution (Middleware -> Controller)
+            const next = async () => {
+              if (index < allMiddlewares.length) {
+                const middleware = allMiddlewares[index++];
+                await middleware.handle(req, res, next);
+              } else {
+                // Résolution des arguments (injecte Request, Response, params, etc.)
+                const args = ArgumentResolver.resolve(
+                  instance,
+                  route.methodName,
+                  req,
+                  res
+                );
+                
+                const result = await instance[route.methodName](...args);
+                this.sendResponse(res, result);
               }
-            }
+            };
 
-            // 2. Comportement par défaut (fallback)
-            if (result && typeof result === "object") {
-              return res.json(result);
-            }
+            await next();
 
-            return res.send(result);
-          } catch (err) {
-            console.error("Internal Error:", err);
-            res.status(500).json({ error: "Internal Server Error" });
+          } catch (err: any) {
+            console.error("🔥 Router Error:", err);
+            res.status(500).json({ 
+                error: "Internal Server Error", 
+                details: err.message 
+            });
           }
         }
       );
-
-      // console.log(`  Mapped [${route.method}] ${expressPath}`);
     });
   }
 
-  match(path: string, method: string) {
-    for (const controller of this.controllers) {
-      const prefix = Reflect.getMetadata("prefix", controller) || "";
-      const routes: any[] = Reflect.getMetadata("routes", controller) || [];
+  /**
+   * Gère la réponse selon ce que le contrôleur renvoie
+   */
+  private sendResponse(res: any, result: any) {
+    if (!result) return res.end();
 
-      for (const route of routes) {
-        const fullPath = (prefix + route.path).replace(/\/+/g, "/");
-
-        // 1. Transformer {id} en groupe de capture regex ([^/]+)
-        const regexPath = new RegExp(
-          "^" + fullPath.replace(/{[^/]+}/g, "([^/]+)") + "/?$"
-        );
-        const match = path.match(regexPath);
-        // framework/Routing/Router.ts
-        console.log(
-          `Test matching: [${method}] ${path}  VS  [${route.method}] ${fullPath}`
-        );
-
-        if (match && route.method === method) {
-          // Extraire les valeurs des paramètres (ex: l'id)
-          const params = match.slice(1);
-          return { controller, route, params };
-        }
+    // Si c'est une réponse type AbstractController (this.json, this.render)
+    if (result && result.__isResponse) {
+      switch (result.type) {
+        case "json":
+          return res.status(result.status || 200).json(result.data);
+        case "render":
+          return res.render(result.template, result.data);
+        case "redirect":
+          return res.redirect(result.status || 302, result.url);
       }
     }
-    return null;
+
+    // Si c'est un objet brut
+    if (typeof result === "object") {
+      return res.json(result);
+    }
+
+    // Sinon (string, html...)
+    return res.send(result);
   }
 
-  public debugRoutes(): void {
-    console.log("\n--- Routes Debug ---");
-    console.table(
-      this.controllers.flatMap((controller) => {
-        const prefix = Reflect.getMetadata("prefix", controller) || "";
-        const routes: any[] = Reflect.getMetadata("routes", controller) || [];
+  public debugRoutes() {
+    console.log("\n--- 📍 Registered Routes ---");
+    // On récupère les routes via les métadonnées des contrôleurs enregistrés
+    this.controllers.forEach(controllerClass => {
+        const prefix = Reflect.getMetadata("prefix", controllerClass) || "";
+        const routes: any[] = Reflect.getMetadata("routes", controllerClass) || [];
+        
+        routes.forEach(route => {
+            const fullPath = (prefix + route.path).replace(/\/+/g, "/");
+            console.log(`[${route.method.toUpperCase()}]`.padEnd(8) + ` ${fullPath}`);
+        });
+    });
+    console.log("---------------------------\n");
+}
 
-        return routes.map((route) => ({
-          Method: route.method,
-          Path: (prefix + route.path).replace(/\/+/g, "/"),
-          Controller: controller.name,
-          Action: route.action,
-        }));
-      })
-    );
-    console.log("------------------------------\n");
-  }
+
 }

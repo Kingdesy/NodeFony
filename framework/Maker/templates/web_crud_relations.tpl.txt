@@ -1,0 +1,96 @@
+import { Controller, Get, Post, Put, Delete } from '../../../framework/Routing/Decorators';
+import { AbstractController } from '../../../framework/Controller/AbstractController';
+import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+import { Request } from '../../../framework/Http/Request';
+import { Response } from '../../../framework/Http/Response';
+
+// Imports dynamiques des entités liées
+{{relationImports}}
+
+@Controller('/{{slug}}')
+export class {{name}}Controller extends AbstractController {
+
+    /**
+     * Liste principale
+     */
+    @Get('/')
+    async index() {
+        const items = await {{name}}Repo.find({
+            relations: [{{relations}}]
+        });
+        return this.render('{{slug}}/index.html', { items });
+    }
+
+    /**
+     * Formulaire de création
+     */
+    @Get('/new')
+    async new() {
+        // Chargement des dépendances pour les formulaires (ex: categoryList)
+        const dependencies = {
+            {{relationFetch}}
+        };
+        
+        return this.render('{{slug}}/new.html', { ...dependencies });
+    }
+
+    /**
+     * Traitement de la création
+     */
+    @Post('/create')
+    async create(request: Request) {
+        try {
+            const newItem = {{name}}Repo.create(request.getBody());
+            await {{name}}Repo.save(newItem);
+            return this.redirect('/{{slug}}');
+        } catch (error) {
+            return this.redirect('/{{slug}}/new?error=creation_failed');
+        }
+    }
+
+    /**
+     * Formulaire d'édition
+     */
+    @Get('/edit/{id}')
+    async edit(id: string) {
+        const item = await {{name}}Repo.findOne({
+            where: { id: parseInt(id) } as any,
+            relations: [{{relations}}]
+        });
+
+        if (!item) return this.redirect('/{{slug}}?error=not_found');
+
+        // Chargement des dépendances pour mettre à jour les relations
+        const dependencies = {
+            {{relationFetch}}
+        };
+
+        return this.render('{{slug}}/edit.html', { 
+            item, 
+            ...dependencies 
+        });
+    }
+
+    /**
+     * Traitement de la mise à jour
+     */
+    @Post('/update/{id}')
+    async update(id: string, request: Request) {
+        let item = await {{name}}Repo.findOneBy({ id: parseInt(id) } as any);
+        if (!item) return this.redirect('/{{slug}}?error=not_found');
+
+        {{name}}Repo.merge(item, request.getBody());
+        await {{name}}Repo.save(item);
+
+        return this.redirect('/{{slug}}');
+    }
+
+    /**
+     * Suppression
+     */
+    @Get('/delete/{id}')
+    async delete(id: string) {
+        await {{name}}Repo.delete(id);
+        return this.redirect('/{{slug}}');
+    }
+}

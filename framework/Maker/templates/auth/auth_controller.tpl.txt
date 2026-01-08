@@ -1,0 +1,45 @@
+import { Controller, Post } from "../../../framework/Routing/Decorators";
+import { AbstractController } from "../../../framework/Controller/AbstractController";
+import { UserRepo } from "../../Repository/UserRepository";
+import { SecurityService } from "../../Services/SecurityService";
+import { Request } from "../../../framework/Http/Request";
+
+@Controller("/auth")
+export class AuthController extends AbstractController {
+  @Post("/login")
+  async login(request: Request, res: any) {
+    const { email, password } = request.getBody();
+    const user = await UserRepo.findOneBy({ email });
+    if (
+      !user ||
+      !(await SecurityService.comparePassword(password, user.password))
+    ) {
+      return this.json({ error: "Invalid credentials" }, 401);
+    }
+    const token = SecurityService.generateToken({
+      id: user.id,
+      email: user.email,
+    });
+
+    // 'res' est maintenant l'objet Express injecté par l'ArgumentResolver
+    res.cookie("access_token", token, { httpOnly: true });
+
+    return { message: "Succès !" };
+  }
+
+  @Post("/register")
+  async register(request: Request) {
+    const { email, password, name } = request.getBody();
+
+    const hashedPassword = await SecurityService.hashPassword(password);
+
+    const user = UserRepo.create({
+      email,
+      password: hashedPassword,
+      name,
+    });
+
+    await UserRepo.save(user);
+    return this.json({ message: "User created" }, 201);
+  }
+}

@@ -1,19 +1,17 @@
 import "reflect-metadata";
-import { Request } from "./Request";
+import { Request as MyRequest } from "./Request";
 import type { Type } from "../Container/Container";
-
 
 export class ArgumentResolver {
     
-private static getParamNames(func: Function): string[] {
-        if (!func) return []; // Sécurité : si la fonction n'existe pas, on renvoie vide
-        
+    private static getParamNames(func: Function): string[] {
+        if (!func) return [];
         const fnStr = func.toString();
         const result = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
         return result === null ? [] : result;
     }
 
-    static resolve(instance: any, methodName: string, req: any): any[] {
+    static resolve(instance: any, methodName: string, req: any, res: any): any[] {
         const args: any[] = [];
         const method = instance[methodName];
         
@@ -22,30 +20,29 @@ private static getParamNames(func: Function): string[] {
             return [];
         }
         
-        // On récupère les noms (ex: ["id", "request"])
         const paramNames = this.getParamNames(method);
-        
-        // On récupère les types (ex: [Number, Request])
         const paramTypes = Reflect.getMetadata('design:paramtypes', instance, methodName) || [];
-
 
         paramNames.forEach((name, index) => {
             const type = paramTypes[index];
 
-            // 1. Injection par TYPE (ex: ton objet Request)
+            // 1. Injection de la REQUEST (par type)
             if (type && type.name === 'Request') {
-                // On importe ton MyRequest personnalisé ici
                 const { Request } = require('../Http/Request');
                 args.push(new Request(req));
             } 
-            // 2. Injection par NOM (ex: {id} dans l'URL)
-            else if (req.params[name] !== undefined) {
+            // 2. Injection de la RESPONSE (par nom : res ou response)
+            // C'est ici qu'on corrige ton erreur !
+            else if (name === 'res' || name === 'response') {
+                args.push(res);
+            }
+            // 3. Injection par NOM (Params d'URL ex: /user/:id)
+            else if (req.params && req.params[name] !== undefined) {
                 const value = req.params[name];
-                // Petit bonus : conversion auto si le type est Number
                 args.push(type === Number ? Number(value) : value);
             }
-            // 3. Injection par QUERY (ex: ?page=1)
-            else if (req.query[name] !== undefined) {
+            // 4. Injection par QUERY (ex: ?page=1)
+            else if (req.query && req.query[name] !== undefined) {
                 args.push(req.query[name]);
             }
             else {

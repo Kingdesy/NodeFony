@@ -1,8 +1,14 @@
-import { Controller, Get, Post } from '../../../framework/Routing/Decorators';
+import { Controller, Get, Post, Put, Delete } from '../../../framework/Routing/Decorators';
 import { AbstractController } from '../../../framework/Controller/AbstractController';
 import { {{name}}Repo } from '../../Repository/{{name}}Repository';
+import { Request } from '../../../framework/Http/Request';
 
 @Controller('/{{slug}}')
 export class {{name}}Controller extends AbstractController {
-{{methodsCode}}
+
+    /**
+     * Web Custom Methods (HTML Views)
+     */
+    {{methodsCode}}
+
 }
